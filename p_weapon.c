@@ -745,9 +745,13 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 	float	damage_radius;
 	int		radius_damage;
 
-	damage = 100 + (int)(random() * 20.0);
-	radius_damage = 120;
-	damage_radius = 120;
+	//damage = 100 + (int)(random() * 20.0);
+	damage = 1;
+	//radius_damage = 120;
+	//damage_radius = 120;
+	radius_damage = 1;
+	damage_radius = 100;
+	
 	if (is_quad)
 	{
 		damage *= 4;
@@ -761,7 +765,9 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 
 	VectorSet(offset, 8, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
+	fire_pushfield(ent, start, forward,damage,10, damage_radius, radius_damage);
+
+	
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -1167,7 +1173,7 @@ void weapon_shotgun_fire (edict_t *ent)
 	vec3_t		start;
 	vec3_t		forward, right;
 	vec3_t		offset;
-	int			damage = 4;
+	int			damage = 10;
 	int			kick = 8;
 
 	if (ent->client->ps.gunframe == 9)
@@ -1191,9 +1197,9 @@ void weapon_shotgun_fire (edict_t *ent)
 	}
 
 	if (deathmatch->value)
-		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
+		fire_force_push (ent, start, forward, damage, kick, 1200, 900, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
 	else
-		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_SHOTGUN_COUNT, MOD_SHOTGUN);
+		fire_force_push (ent, start, forward, damage, kick, 1200, 900, DEFAULT_SHOTGUN_COUNT, MOD_SHOTGUN);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);

@@ -115,7 +115,7 @@ This is an internal support routine used for bullet/pellet based weapons.
 static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
 {
 	trace_t		tr;
-	vec3_t		dir;
+	vec3_t		dir , dir2;
 	vec3_t		forward, right, up;
 	vec3_t		end;
 	float		r;
@@ -244,9 +244,317 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 		gi.WritePosition (tr.endpos);
 		gi.multicast (pos, MULTICAST_PVS);
 	}
+
+}
+//modded
+static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
+{
+	trace_t		tr;
+	vec3_t		dir , dir2;
+	vec3_t		forward, right, up;
+	vec3_t		end;
+	float		r;
+	float		u;
+
+	vec3_t		water_start;
+	qboolean	water = false;
+	int			content_mask = MASK_SHOT | MASK_WATER;
+
+	tr = gi.trace (self->s.origin, NULL, NULL, start, self, MASK_SHOT);
+	if (!(tr.fraction < 1.0))
+	{
+		vectoangles (aimdir, dir);
+		AngleVectors (dir, forward, right, up);
+
+		r = crandom()*hspread;
+		u = crandom()*vspread;
+
+		VectorMA (start, 8192, forward, end);
+		VectorMA (end, r, right, end);
+		VectorMA (end, u, up, end);
+
+		if (gi.pointcontents (start) & MASK_WATER)
+		{
+			water = true;
+			VectorCopy (start, water_start);
+			content_mask &= ~MASK_WATER;
+		}
+
+		tr = gi.trace (start, NULL, NULL, end, self, content_mask);
+
+		// see if we hit water
+		if (tr.contents & MASK_WATER)
+		{
+			int		color;
+
+			water = true;
+			VectorCopy (tr.endpos, water_start);
+
+			if (!VectorCompare (start, tr.endpos))
+			{
+				if (tr.contents & CONTENTS_WATER)
+				{
+					if (strcmp(tr.surface->name, "*brwater") == 0)
+						color = SPLASH_BROWN_WATER;
+					else
+						color = SPLASH_BLUE_WATER;
+				}
+				else if (tr.contents & CONTENTS_SLIME)
+					color = SPLASH_SLIME;
+				else if (tr.contents & CONTENTS_LAVA)
+					color = SPLASH_LAVA;
+				else
+					color = SPLASH_UNKNOWN;
+
+				if (color != SPLASH_UNKNOWN)
+				{
+					gi.WriteByte (svc_temp_entity);
+					gi.WriteByte (TE_SPLASH);
+					gi.WriteByte (8);
+					gi.WritePosition (tr.endpos);
+					gi.WriteDir (tr.plane.normal);
+					gi.WriteByte (color);
+					gi.multicast (tr.endpos, MULTICAST_PVS);
+				}
+
+				// change bullet's course when it enters water
+				VectorSubtract (end, start, dir);
+				vectoangles (dir, dir);
+				AngleVectors (dir, forward, right, up);
+				r = crandom()*hspread*2;
+				u = crandom()*vspread*2;
+				VectorMA (water_start, 8192, forward, end);
+				VectorMA (end, r, right, end);
+				VectorMA (end, u, up, end);
+			}
+
+			// re-trace ignoring water this time
+			tr = gi.trace (water_start, NULL, NULL, end, self, MASK_SHOT);
+		}
+	}
+
+	// send gun puff / flash
+	if (!((tr.surface) && (tr.surface->flags & SURF_SKY)))
+	{
+		if (tr.fraction < 1.0)
+		{
+			if (tr.ent->takedamage)
+			{
+				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+			}
+			else
+			{
+				if (strncmp (tr.surface->name, "sky", 3) != 0)
+				{
+					gi.WriteByte (svc_temp_entity);
+					gi.WriteByte (te_impact);
+					gi.WritePosition (tr.endpos);
+					gi.WriteDir (tr.plane.normal);
+					gi.multicast (tr.endpos, MULTICAST_PVS);
+
+					if (self->client)
+						PlayerNoise(self, tr.endpos, PNOISE_IMPACT);
+				}
+			}
+		}
+	}
+
+	// if went through water, determine where the end and make a bubble trail
+	if (water)
+	{
+		vec3_t	pos;
+
+		VectorSubtract (tr.endpos, water_start, dir);
+		VectorNormalize (dir);
+		VectorMA (tr.endpos, -2, dir, pos);
+		if (gi.pointcontents (pos) & MASK_WATER)
+			VectorCopy (pos, tr.endpos);
+		else
+			tr = gi.trace (pos, NULL, NULL, water_start, tr.ent, MASK_WATER);
+
+		VectorAdd (water_start, tr.endpos, pos);
+		VectorScale (pos, 0.5, pos);
+
+		gi.WriteByte (svc_temp_entity);
+		gi.WriteByte (TE_BUBBLETRAIL);
+		gi.WritePosition (water_start);
+		gi.WritePosition (tr.endpos);
+		gi.multicast (pos, MULTICAST_PVS);
+	}
+	//Force push if player is not grounded
+	if(!self->groundentity){
+	dir2[0] = -aimdir[0];
+	dir2[1] = -aimdir[1];
+	dir2[2] = -aimdir[2];
+	T_Damage (self, self, self, dir2, tr.endpos, tr.plane.normal, 0, -kick, DAMAGE_BULLET, mod);
+	}else{
+	dir2[0] = -aimdir[0];
+	dir2[1] = -aimdir[1];
+	T_Damage (self, self, self, dir2, tr.endpos, tr.plane.normal, 0, -10, DAMAGE_BULLET, mod);
+	}
+
 }
 
+//modded
+static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
+{
+	trace_t		tr;
+	vec3_t		dir , dir2 , kvel;
+	vec3_t		forward, right, up;
+	vec3_t		end;
+	float		r;
+	float		u;
+	float		mass;
 
+	vec3_t		water_start;
+	qboolean	water = false;
+	int			content_mask = MASK_SHOT | MASK_WATER;
+
+	tr = gi.trace (self->s.origin, NULL, NULL, start, self, MASK_SHOT);
+	if (!(tr.fraction < 1.0))
+	{
+		vectoangles (aimdir, dir);
+		AngleVectors (dir, forward, right, up);
+
+		r = crandom()*hspread;
+		u = crandom()*vspread;
+
+		VectorMA (start, 8192, forward, end);
+		VectorMA (end, r, right, end);
+		VectorMA (end, u, up, end);
+
+
+		if (gi.pointcontents (start) & MASK_WATER)
+		{
+			water = true;
+			VectorCopy (start, water_start);
+			content_mask &= ~MASK_WATER;
+		}
+
+		tr = gi.trace (start, NULL, NULL, end, self, content_mask);
+
+		// see if we hit water
+		if (tr.contents & MASK_WATER)
+		{
+			int		color;
+
+			water = true;
+			VectorCopy (tr.endpos, water_start);
+
+			if (!VectorCompare (start, tr.endpos))
+			{
+				if (tr.contents & CONTENTS_WATER)
+				{
+					if (strcmp(tr.surface->name, "*brwater") == 0)
+						color = SPLASH_BROWN_WATER;
+					else
+						color = SPLASH_BLUE_WATER;
+				}
+				else if (tr.contents & CONTENTS_SLIME)
+					color = SPLASH_SLIME;
+				else if (tr.contents & CONTENTS_LAVA)
+					color = SPLASH_LAVA;
+				else
+					color = SPLASH_UNKNOWN;
+
+				if (color != SPLASH_UNKNOWN)
+				{
+					gi.WriteByte (svc_temp_entity);
+					gi.WriteByte (TE_SPLASH);
+					gi.WriteByte (8);
+					gi.WritePosition (tr.endpos);
+					gi.WriteDir (tr.plane.normal);
+					gi.WriteByte (color);
+					gi.multicast (tr.endpos, MULTICAST_PVS);
+				}
+
+				// change bullet's course when it enters water
+				VectorSubtract (end, start, dir);
+				vectoangles (dir, dir);
+				AngleVectors (dir, forward, right, up);
+				r = crandom()*hspread*2;
+				u = crandom()*vspread*2;
+				VectorMA (water_start, 8192, forward, end);
+				VectorMA (end, r, right, end);
+				VectorMA (end, u, up, end);
+			}
+
+			// re-trace ignoring water this time
+			tr = gi.trace (water_start, NULL, NULL, end, self, MASK_SHOT);
+		}
+	}
+
+	// send gun puff / flash
+	if (!((tr.surface) && (tr.surface->flags & SURF_SKY)))
+	{
+		if (tr.fraction < 1.0)
+		{
+			if (tr.ent->takedamage)
+			{
+				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+			}
+			else
+			{
+				if (strncmp (tr.surface->name, "sky", 3) != 0)
+				{
+					gi.WriteByte (svc_temp_entity);
+					gi.WriteByte (te_impact);
+					gi.WritePosition (tr.endpos);
+					gi.WriteDir (tr.plane.normal);
+					gi.multicast (tr.endpos, MULTICAST_PVS);
+
+					if (self->client)
+						PlayerNoise(self, tr.endpos, PNOISE_IMPACT);
+				}
+			}
+		}
+	}
+
+	// if went through water, determine where the end and make a bubble trail
+	if (water)
+	{
+		vec3_t	pos;
+
+		VectorSubtract (tr.endpos, water_start, dir);
+		VectorNormalize (dir);
+		VectorMA (tr.endpos, -2, dir, pos);
+		if (gi.pointcontents (pos) & MASK_WATER)
+			VectorCopy (pos, tr.endpos);
+		else
+			tr = gi.trace (pos, NULL, NULL, water_start, tr.ent, MASK_WATER);
+
+		VectorAdd (water_start, tr.endpos, pos);
+		VectorScale (pos, 0.5, pos);
+
+		gi.WriteByte (svc_temp_entity);
+		gi.WriteByte (TE_BUBBLETRAIL);
+		gi.WritePosition (water_start);
+		gi.WritePosition (tr.endpos);
+		gi.multicast (pos, MULTICAST_PVS);
+	}
+	//Force push if player is not grounded
+	//if(!self->groundentity){
+		if (self->mass < 50)
+				mass = 50;
+			else
+				mass = self->mass;
+
+			if (self->client)
+				VectorScale (aimdir, 1600.0 * 100/ mass, kvel);	
+			else
+				VectorScale (aimdir, 500.0 * 100/ mass, kvel);
+
+			//VectorSubtract (self->velocity, kvel, rocket->owner->velocity);
+			self->velocity[0] = -kvel[0];
+			self->velocity[1] = -kvel[1];
+			self->velocity[2] = -kvel[2];
+	//}else{
+	//dir2[0] = -aimdir[0];
+//	dir2[1] = -aimdir[1];
+	//T_Damage (self, self, self, dir2, tr.endpos, tr.plane.normal, 0, 10, DAMAGE_BULLET, mod);
+	//}
+
+}
 /*
 =================
 fire_bullet
@@ -274,6 +582,23 @@ void fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int k
 
 	for (i = 0; i < count; i++)
 		fire_lead (self, start, aimdir, damage, kick, TE_SHOTGUN, hspread, vspread, mod);
+}
+
+//modded
+void fire_force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int mod)
+{
+	int		i;
+
+	for (i = 0; i < count; i++)
+		force_push (self, start, aimdir, damage, kick,TE_BLASTER, hspread, vspread, mod);
+}
+
+void fire_force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int mod)
+{
+	int		i;
+
+	for (i = 0; i < count; i++)
+		force_push (self, start, aimdir, damage, kick, TE_SHOTGUN, hspread, vspread, mod);
 }
 
 
@@ -381,6 +706,7 @@ static void Grenade_Explode (edict_t *ent)
 	vec3_t		origin;
 	int			mod;
 
+
 	if (ent->owner->client)
 		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
 
@@ -430,7 +756,10 @@ static void Grenade_Explode (edict_t *ent)
 	gi.WritePosition (origin);
 	gi.multicast (ent->s.origin, MULTICAST_PHS);
 
-	G_FreeEdict (ent);
+
+
+
+	G_FreeEdict (ent);  //doesnt delete grenades if commited out, makes landmines!
 }
 
 static void Grenade_Touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
@@ -549,8 +878,9 @@ fire_rocket
 */
 void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
-	vec3_t		origin;
+	vec3_t		origin, kvel, dir;
 	int			n;
+	float		mass;
 
 	if (other == ent->owner)
 		return;
@@ -569,7 +899,7 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 
 	if (other->takedamage)
 	{
-		T_Damage (other, ent, ent->owner, ent->velocity, ent->s.origin, plane->normal, ent->dmg, 0, 0, MOD_ROCKET);
+		
 	}
 	else
 	{
@@ -597,10 +927,155 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 
 	G_FreeEdict (ent);
 }
+//Modded->For force PushField
+void force_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
+{
+	vec3_t		origin, kvel, dir;
+	int			n;
+	float		mass;
 
-void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
+	if (other == ent->owner)
+		return;
+
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict (ent);
+		return;
+	}
+
+	if (ent->owner->client)
+		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
+
+	// calculate position for the explosion entity
+	VectorMA (ent->s.origin, -0.02, ent->velocity, origin);
+
+	if (other->takedamage)
+	{
+		//moddded
+		dir[0] = ent->velocity[0];
+		dir[1] = ent->velocity[1];
+		dir[2] = ent->velocity[2];
+		if (other->mass < 50)
+				mass = 50;
+			else
+				mass = other->mass;
+
+			if (other->client)
+				VectorScale (dir, 1600.0 * 200/ mass, kvel);	// the rocket jump hack...
+			else
+				VectorScale (dir, 500.0 * 200/ mass, kvel);
+
+			VectorAdd (other->velocity, kvel, other->velocity);
+	}
+	else
+	{
+		// don't throw any debris in net games
+		if (!deathmatch->value && !coop->value)
+		{
+			if ((surf) && !(surf->flags & (SURF_WARP|SURF_TRANS33|SURF_TRANS66|SURF_FLOWING)))
+			{
+				n = rand() % 5;
+				while(n--)
+					ThrowDebris (ent, "models/objects/debris2/tris.md2", 2, ent->s.origin);
+			}
+		}
+	}
+
+	Force_RadiusDamage(ent, ent->owner, ent->radius_dmg, other, ent->dmg_radius, MOD_R_SPLASH);
+
+
+	gi.WriteByte (svc_temp_entity);
+	if (ent->waterlevel)
+		gi.WriteByte (TE_ROCKET_EXPLOSION_WATER);
+	else
+		gi.WriteByte (TE_ROCKET_EXPLOSION);
+	gi.WritePosition (origin);
+	gi.multicast (ent->s.origin, MULTICAST_PHS);
+
+	G_FreeEdict (ent);
+}
+//Modded -> for force pushFlied
+static void Force_explode (edict_t *ent)
+{
+	vec3_t		origin;
+	int			mod;
+	vec3_t		kvel,dir2;
+	int			mass;
+
+
+	if (ent->owner->client)
+		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
+
+	//FIXME: if we are onground then raise our Z just a bit since we are a point?
+	/*if (ent->enemy)
+	{
+		float	points;
+		vec3_t	v;
+		vec3_t	dir;
+
+		VectorAdd (ent->enemy->mins, ent->enemy->maxs, v);
+		VectorMA (ent->enemy->s.origin, 0.5, v, v);
+		VectorSubtract (ent->s.origin, v, v);
+		points = ent->dmg - 0.5 * VectorLength (v);
+		VectorSubtract (ent->enemy->s.origin, ent->s.origin, dir);
+		//modded
+		dir2[0] = dir[0];
+		dir2[1] = dir[1];
+		dir2[2] = dir[2];
+
+		if (ent->spawnflags & 1)
+			mod = MOD_HANDGRENADE;
+		else
+			mod = MOD_GRENADE;
+	//	T_Damage (ent->enemy, ent, ent->owner, dir, ent->s.origin, vec3_origin, 1,100, DAMAGE_RADIUS, mod);
+	}*/
+
+	if (ent->spawnflags & 2)
+		mod = MOD_HELD_GRENADE;
+	else if (ent->spawnflags & 1)
+		mod = MOD_HG_SPLASH;
+	else
+		mod = MOD_G_SPLASH;
+	Force_RadiusDamage(ent, ent->owner, 2, ent->enemy, ent->dmg_radius, mod);
+
+	
+	
+	VectorMA (ent->s.origin, -0.02, ent->velocity, origin);
+	gi.WriteByte (svc_temp_entity);
+
+	gi.WriteByte (TE_EXPLOSION1);
+
+	gi.WritePosition (origin);
+	gi.multicast (ent->s.origin, MULTICAST_PHS);
+
+
+
+
+	G_FreeEdict (ent);  //doesnt delete grenades if commited out, makes landmines!
+}
+/*void RocketScrewUp(edict_t *self) 
+{
+	vec3_t dir;
+		
+		dir[0] = crandom()*2;
+		dir[1] = crandom()*2;
+		dir[2] = crandom()*2;
+
+		VectorCopy (dir, self->movedir);
+		vectoangles (dir, self->s.angles);
+		VectorScale (dir, self->speed, self->velocity);
+
+		self->nextthink = level.time + 0.08; // screw up fast
+        self->think = RocketScrewUp;
+		return;
+};*/
+
+void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
 {
 	edict_t	*rocket;
+	vec3_t   end,kvel,dir2;
+	int   i;
+	float mass ;
 
 	rocket = G_Spawn();
 	VectorCopy (start, rocket->s.origin);
@@ -615,14 +1090,86 @@ void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed
 	VectorClear (rocket->maxs);
 	rocket->s.modelindex = gi.modelindex ("models/objects/rocket/tris.md2");
 	rocket->owner = self;
-	rocket->touch = rocket_touch;
-	rocket->nextthink = level.time + 8000/speed;
-	rocket->think = G_FreeEdict;
-	rocket->dmg = damage;
-	rocket->radius_dmg = radius_damage;
+	rocket->touch = force_touch;
+	rocket->nextthink = level.time + 5;
+	rocket->think = Force_explode;
+	//rocket->dmg = damage;
 	rocket->dmg_radius = damage_radius;
 	rocket->s.sound = gi.soundindex ("weapons/rockfly.wav");
 	rocket->classname = "rocket";
+		//modded->Push back player a little
+		dir2[0] = dir[0];
+		dir2[1] = dir[1];
+		dir2[2] = dir[2];
+
+		if (self->mass < 50)
+				mass = 50;
+			else
+				mass = self->mass;
+
+			if (self->client)
+				VectorScale (dir2, 1600.0 * 50/ mass, kvel);	
+			else
+				VectorScale (dir2, 500.0 * 50/ mass, kvel);
+
+			//VectorSubtract (self->velocity, kvel, rocket->owner->velocity);
+			rocket->owner->velocity[0] = -kvel[0];
+			rocket->owner->velocity[1] = -kvel[1];
+			rocket->owner->velocity[2] = -kvel[2];
+
+
+	if (self->client)
+		check_dodge (self, rocket->s.origin, dir, speed);
+
+	gi.linkentity (rocket);
+}
+void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
+{
+	edict_t	*rocket;
+	vec3_t   end,kvel,dir2;
+	int   i;
+	float mass ;
+
+	rocket = G_Spawn();
+	VectorCopy (start, rocket->s.origin);
+	VectorCopy (dir, rocket->movedir);
+	vectoangles (dir, rocket->s.angles);
+	VectorScale (dir, speed, rocket->velocity);
+	rocket->movetype = MOVETYPE_FLYMISSILE;
+	rocket->clipmask = MASK_SHOT;
+	rocket->solid = SOLID_BBOX;
+	rocket->s.effects |= EF_ROCKET;
+	VectorClear (rocket->mins);
+	VectorClear (rocket->maxs);
+	rocket->s.modelindex = gi.modelindex ("models/objects/rocket/tris.md2");
+	rocket->owner = self;
+	rocket->touch = force_touch;
+	rocket->nextthink = level.time + 5;
+	rocket->think = Force_explode;
+	//rocket->dmg = damage;
+	rocket->dmg_radius = damage_radius;
+	rocket->s.sound = gi.soundindex ("weapons/rockfly.wav");
+	rocket->classname = "rocket";
+		//modded->Push back player a little
+		dir2[0] = dir[0];
+		dir2[1] = dir[1];
+		dir2[2] = dir[2];
+
+		if (self->mass < 50)
+				mass = 50;
+			else
+				mass = self->mass;
+
+			if (self->client)
+				VectorScale (dir2, 1600.0 * 50/ mass, kvel);	
+			else
+				VectorScale (dir2, 500.0 * 50/ mass, kvel);
+
+			//VectorSubtract (self->velocity, kvel, rocket->owner->velocity);
+			rocket->owner->velocity[0] = -kvel[0];
+			rocket->owner->velocity[1] = -kvel[1];
+			rocket->owner->velocity[2] = -kvel[2];
+
 
 	if (self->client)
 		check_dodge (self, rocket->s.origin, dir, speed);
