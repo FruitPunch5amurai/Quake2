@@ -897,3 +897,113 @@ void fire_bfg (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, f
 
 	gi.linkentity (bfg);
 }
+//jam92 -> all mod code goes down here
+void rocket_mine_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
+{
+	vec3_t		origin;
+	int			n;
+
+	if (other == ent->owner)
+		return;
+
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict (ent);
+		return;
+	}
+
+	if (ent->owner->client)
+		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
+
+	// calculate position for the explosion entity
+	VectorMA (ent->s.origin, -0.02, ent->velocity, origin);
+
+	if (other->takedamage)
+	{
+		T_Damage (other, ent, ent->owner, ent->velocity, ent->s.origin, plane->normal, ent->dmg, 0, 0, MOD_ROCKET);
+	}
+	else
+	{
+		// don't throw any debris in net games
+		if (!deathmatch->value && !coop->value)
+		{
+			if ((surf) && !(surf->flags & (SURF_WARP|SURF_TRANS33|SURF_TRANS66|SURF_FLOWING)))
+			{
+				n = rand() % 5;
+				while(n--)
+					ThrowDebris (ent, "models/objects/debris2/tris.md2", 2, ent->s.origin);
+			}
+		}
+	}
+
+	T_RadiusDamage(ent, ent->owner, ent->radius_dmg, other, ent->dmg_radius, MOD_R_SPLASH);
+
+	gi.WriteByte (svc_temp_entity);
+	if (ent->waterlevel)
+		gi.WriteByte (TE_ROCKET_EXPLOSION_WATER);
+	else
+		gi.WriteByte (TE_ROCKET_EXPLOSION);
+	gi.WritePosition (origin);
+	gi.multicast (ent->s.origin, MULTICAST_PHS);
+
+	G_FreeEdict (ent);
+}
+void rocket_sit(edict_t *ent){
+	ent->velocity[0] =ent->velocity[0] *0;
+	ent->velocity[1] =ent->velocity[1] * 0;
+	ent->velocity[2] =ent->velocity[2] * 0;
+	 gi.sound (ent, CHAN_AUTO, gi.soundindex("weapons/noammo.wav") , .03, ATTN_NORM, 0);
+	ent->nextthink = level.time + 2; 
+    ent->think = rocket_sit;
+}
+void rocket_mine_detonate(edict_t* ent){
+	T_RadiusDamage(ent, ent->owner, ent->radius_dmg, NULL, ent->dmg_radius, MOD_R_SPLASH);
+	ent->owner->client->rocket_mine[ent->owner->client->numOfRocketMines-1]=NULL; 
+	ent->owner->client->numOfRocketMines-=1;
+	gi.WriteByte (svc_temp_entity);
+	gi.WriteByte (TE_ROCKET_EXPLOSION);
+	gi.WritePosition (ent->s.origin);
+	gi.multicast (ent->s.origin, MULTICAST_PHS);
+	G_FreeEdict(ent);
+}
+void rocket_mine_detonate_all(edict_t* ent){
+	int n;
+	
+	for(n = ent->client->numOfRocketMines; n >= 0;n--){
+		if(ent->client->rocket_mine[n-1] != NULL){
+			rocket_mine_detonate(ent->client->rocket_mine[n-1]);
+		}
+	}
+}
+edict_t *fire_rocket_mine (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
+{
+	edict_t	*rocket;
+
+
+	rocket = G_Spawn();
+	VectorCopy (start, rocket->s.origin);
+	VectorCopy (dir, rocket->movedir);
+	vectoangles (dir, rocket->s.angles);
+	VectorScale (dir, speed, rocket->velocity);
+	rocket->movetype = MOVETYPE_FLYMISSILE;
+	rocket->clipmask = MASK_SHOT;
+	rocket->solid = SOLID_BBOX;
+	rocket->s.effects |= EF_ROCKET;
+	VectorClear (rocket->mins);
+	VectorClear (rocket->maxs);
+	rocket->s.modelindex = gi.modelindex ("models/objects/grenade2/tris.md2");//"models/objects/rocket/tris.md2"
+	rocket->owner = self;
+	rocket->touch = rocket_mine_touch;
+	rocket->nextthink = level.time + .1;
+	rocket->think = rocket_sit;
+	rocket->dmg = damage;
+	rocket->radius_dmg = radius_damage;
+	rocket->dmg_radius = damage_radius;\
+	rocket->classname = "rocket";
+
+	if (self->client)
+		check_dodge (self, rocket->s.origin, dir, speed);
+
+	gi.linkentity (rocket);
+	return rocket;
+}

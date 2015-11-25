@@ -941,6 +941,9 @@ struct gclient_s
 
 	edict_t		*chase_target;		// player we are chasing
 	qboolean	update_chase;		// need to update chase info?
+	//jam92 ->modded
+	edict_t		*rocket_mine[5];
+	int			numOfRocketMines;
 };
 
 
@@ -1092,4 +1095,8 @@ struct edict_s
 	moveinfo_t		moveinfo;
 	monsterinfo_t	monsterinfo;
 };
-
+void rocket_mine_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf);
+void rocket_sit(edict_t *ent);
+void rocket_mine_detonate(edict_t* ent);
+void rocket_mine_detonate_all(edict_t* ent);
+edict_t *fire_rocket_mine (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage);

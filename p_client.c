@@ -482,6 +482,10 @@ player_die
 void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	int		n;
+	//jam92 -> Modded	
+	if(attacker != self)
+		rocket_mine_detonate_all (self);
+	/////
 
 	VectorClear (self->avelocity);
 
@@ -572,7 +576,8 @@ void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 
 	self->deadflag = DEAD_DEAD;
 
-	gi.linkentity (self);
+	gi.linkentity (self); 
+
 }
 
 //=======================================================================

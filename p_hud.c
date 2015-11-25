@@ -12,6 +12,7 @@ INTERMISSION
 
 void MoveClientToIntermission (edict_t *ent)
 {
+	int i;
 	if (deathmatch->value || coop->value)
 		ent->client->showscores = true;
 	VectorCopy (level.intermission_origin, ent->s.origin);
@@ -48,7 +49,16 @@ void MoveClientToIntermission (edict_t *ent)
 		DeathmatchScoreboardMessage (ent, NULL);
 		gi.unicast (ent, true);
 	}
-
+	//jam92->modded
+	for(i = 0; i<5;i++){
+		if(ent->client->rocket_mine[i]!=NULL) {
+			G_FreeEdict(ent->client->rocket_mine[i]);
+			ent->client->rocket_mine[i]=NULL;
+		}
+		
+		ent->client->numOfRocketMines = 0;
+	}
+	////
 }
 
 void BeginIntermission (edict_t *targ)

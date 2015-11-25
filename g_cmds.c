@@ -964,10 +964,15 @@ void ClientCommand (edict_t *ent)
 		Cmd_Kill_f (ent);
 	else if (Q_stricmp (cmd, "putaway") == 0)
 		Cmd_PutAway_f (ent);
-	else if (Q_stricmp (cmd, "wave") == 0)
-		Cmd_Wave_f (ent);
-	else if (Q_stricmp(cmd, "playerlist") == 0)
-		Cmd_PlayerList_f(ent);
+	else if (Q_stricmp (cmd, "rocket_mine_detonate_all") == 0)
+		rocket_mine_detonate_all(ent);
+	else if (Q_stricmp(cmd, "rocket_mine_detonate") == 0){
+		if(ent->client->rocket_mine[ent->client->numOfRocketMines-1] != NULL)
+			rocket_mine_detonate(ent->client->rocket_mine[ent->client->numOfRocketMines-1]);
+		else{
+			
+		}
+	}
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }

@@ -7,7 +7,6 @@
 static qboolean	is_quad;
 static byte		is_silenced;
 
-
 void weapon_grenade_fire (edict_t *ent, qboolean held);
 
 
@@ -411,7 +410,12 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 	{
 		ent->client->weaponstate = WEAPON_DROPPING;
 		ent->client->ps.gunframe = FRAME_DEACTIVATE_FIRST;
-
+		if(ent->client->rocket_mine!=NULL) {
+			//rocket_mine_detonate(ent->client->rocket_mine); 
+		return;
+		}
+	if((ent->client->rocket_mine!=NULL)&&((ent->client->buttons & BUTTON_ATTACK)==0)) 
+		 //rocket_mine_detonate(ent->client->rocket_mine);
 		if ((FRAME_DEACTIVATE_LAST - FRAME_DEACTIVATE_FIRST) < 4)
 		{
 			ent->client->anim_priority = ANIM_REVERSE;
@@ -432,7 +436,7 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 
 	if (ent->client->weaponstate == WEAPON_READY)
 	{
-		if ( ((ent->client->latched_buttons|ent->client->buttons) & BUTTON_ATTACK) )
+		if ( ((ent->client->latched_buttons|ent->client->buttons) & BUTTON_ATTACK)&&(ent->client->numOfRocketMines < 5)) 
 		{
 			ent->client->latched_buttons &= ~BUTTON_ATTACK;
 			if ((!ent->client->ammo_index) || 
@@ -744,6 +748,8 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 	int		damage;
 	float	damage_radius;
 	int		radius_damage;
+	//jam92 -> modded
+
 
 	damage = 100 + (int)(random() * 20.0);
 	radius_damage = 120;
@@ -761,7 +767,13 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 
 	VectorSet(offset, 8, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
+	//fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
+	
+	//jam92 -> modded
+	ent->client->rocket_mine[ent->client->numOfRocketMines] = fire_rocket_mine(ent, start, forward, damage, 130, damage_radius, radius_damage);
+	if(ent->client ->numOfRocketMines <= 5)
+		ent->client->numOfRocketMines++;
+	///
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
