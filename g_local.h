@@ -211,6 +211,7 @@ typedef struct
 #define WEAP_HYPERBLASTER		9 
 #define WEAP_RAILGUN			10
 #define WEAP_BFG				11
+#define WEAP_LIGHTSABER			12 //modded
 
 typedef struct gitem_s
 {
@@ -1098,13 +1099,19 @@ struct edict_s
 	int original;
 
 };
+
+
+//Jam92 -> modded stuff goes below here
 void droptofloor (edict_t *ent);
 void RocketScrewUp();
+#define LIGHTSABER_DEATHMATCH_DAMAGE 150
+#define LIGHTSABER_NORMAL_DAMAGE 100
+#define LIGHTSABER_KICK 500
+#define LIGHTSABER_RANGE 60
 
-//Modded
+void fire_lightsaber ( edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick);
 void Force_RadiusDamage (edict_t *inflictor, edict_t *attacker, float damage, edict_t *ignore, float radius, int mod);
 void Force_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir, vec3_t point, vec3_t normal, int damage, int knockback, int dflags, int mod);
-void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir, int damage,int speed, float damage_radius, int radius_damage);
-void fire_force_push_2 (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage);
+void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed, float damage_radius, int radius_damage);
 void fire_force_push(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int mod);
-void fire_force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int mod);
+void fire_force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick,int mod);

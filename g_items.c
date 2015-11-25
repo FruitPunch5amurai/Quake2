@@ -16,6 +16,9 @@ void Weapon_Grenade (edict_t *ent);
 void Weapon_GrenadeLauncher (edict_t *ent);
 void Weapon_Railgun (edict_t *ent);
 void Weapon_BFG (edict_t *ent);
+//jam92->Modded
+void Weapon_Lightsaber (edict_t *ent); 
+/////
 
 gitem_armor_t jacketarmor_info	= { 25,  50, .30, .00, ARMOR_JACKET};
 gitem_armor_t combatarmor_info	= { 50, 100, .60, .30, ARMOR_COMBAT};
@@ -1473,6 +1476,31 @@ always owned, never in the world
 		0,
 /* precache */ "weapons/hyprbu1a.wav weapons/hyprbl1a.wav weapons/hyprbf1a.wav weapons/hyprbd1a.wav misc/lasfly.wav"
 	},
+
+	//Jam92 -> modded
+	/*Lightsabers,always owned never in world*/
+		{
+			"weapon_lightsaber",
+				NULL,
+				Use_Weapon,
+				NULL,
+				Weapon_Lightsaber,
+				"misc/w_pkup.wav",
+				NULL,
+				0,
+				"models/weapons/v_blast/tris.md2",
+				"w_blaster",
+				"Lightsaber",
+				0,
+				1,
+				NULL,
+				IT_WEAPON,
+				WEAP_LIGHTSABER,
+				NULL,
+				0,
+				"weapons/hgrenlb1b.wav misc/fhit3.wav"
+		},
+
 
 /*QUAKED weapon_railgun (.3 .3 1) (-16 -16 -16) (16 16 16)
 */

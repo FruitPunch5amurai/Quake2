@@ -765,7 +765,7 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 
 	VectorSet(offset, 8, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_pushfield(ent, start, forward,damage,10, damage_radius, radius_damage);
+	fire_pushfield(ent, start, forward,10, damage_radius, radius_damage);
 
 	
 
@@ -1195,11 +1195,7 @@ void weapon_shotgun_fire (edict_t *ent)
 		damage *= 4;
 		kick *= 4;
 	}
-
-	if (deathmatch->value)
-		fire_force_push (ent, start, forward, damage, kick, 1200, 900, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
-	else
-		fire_force_push (ent, start, forward, damage, kick, 1200, 900, DEFAULT_SHOTGUN_COUNT, MOD_SHOTGUN);
+		fire_force_pull (ent, start, forward, damage, kick, MOD_SHOTGUN);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -1416,6 +1412,66 @@ void Weapon_BFG (edict_t *ent)
 
 	Weapon_Generic (ent, 8, 32, 55, 58, pause_frames, fire_frames, weapon_bfg_fire);
 }
+
+//jam92 -> Most of the modded stuff goes down here
+void lightsaber_attack (edict_t *ent, vec3_t g_offset, int damage)
+{
+	vec3_t  forward, right;
+	vec3_t  start;
+	vec3_t  offset;
+
+
+	AngleVectors (ent->client->v_angle, forward, right, NULL);
+	VectorSet(offset, 24, 8, ent->viewheight-8);
+	VectorAdd (offset, g_offset, offset);
+	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
+
+	VectorScale (forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -1;
+
+	fire_lightsaber (ent, start, forward, damage, LIGHTSABER_KICK );
+}
+
+void Weapon_Lightsaber_Fire (edict_t *ent)
+{
+	int damage;
+	if (deathmatch->value)
+		damage =  LIGHTSABER_DEATHMATCH_DAMAGE;
+	else
+		damage = LIGHTSABER_NORMAL_DAMAGE;
+	lightsaber_attack (ent, vec3_origin, damage);
+	ent->client->ps.gunframe++;
+}
+void Weapon_Lightsaber (edict_t *ent)
+{
+	static int      pause_frames[]  = {19, 32, 0};
+	static int      fire_frames[]   = {5, 0};
+
+	Weapon_Generic (ent, 4, 8, 52, 55, pause_frames, fire_frames, Weapon_Lightsaber_Fire);
+}
+
+
+//modded-> for forcePush hotkey j
+void fire_ForcePush(edict_t *ent){
+		vec3_t		start;
+	vec3_t		forward, right;
+	vec3_t		offset;
+	int			damage = 10;
+	int			kick = 8;
+
+	AngleVectors (ent->client->v_angle, forward, right, NULL);
+
+	VectorScale (forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -2;
+
+	VectorSet(offset, 0, 8,  ent->viewheight-8);
+	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
+	
+	fire_force_push (ent, start, forward, damage, kick, 50, 50, 50, MOD_SHOTGUN);
+	
+
+}
+
 
 
 //======================================================================

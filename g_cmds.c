@@ -1,7 +1,6 @@
 #include "g_local.h"
 #include "m_player.h"
 
-
 char *ClientTeam (edict_t *ent)
 {
 	char		*p;
@@ -276,6 +275,26 @@ void Cmd_Give_f (edict_t *ent)
 	}
 }
 
+//Jam92-> modded different form of force pull;
+void Force_Pull(edict_t *ent)
+{
+	vec3_t	start;
+	vec3_t	forward;
+	vec3_t	end;
+	trace_t	tr;
+
+	VectorCopy(ent->s.origin, start);
+	start[2] += ent->viewheight;
+	AngleVectors(ent->client->v_angle, forward, NULL, NULL);
+	VectorMA(start, 100, forward, end);
+	tr = gi.trace(start, NULL, NULL, end, ent, MASK_SHOT);
+	if ( tr.ent && ((tr.ent->svflags & SVF_MONSTER) || (tr.ent->client)) )
+	{
+		VectorScale(forward, -5000, forward);
+		VectorAdd(forward, tr.ent->velocity, tr.ent->velocity);
+	}
+}
+////
 
 /*
 ==================
@@ -398,7 +417,16 @@ void Cmd_Use_f (edict_t *ent)
 		gi.cprintf (ent, PRINT_HIGH, "Out of item: %s\n", s);
 		return;
 	}
+	//Jam92 ->Modded
 
+    else if (!Q_stricmp(s, ent->client->pers.weapon->pickup_name)) 
+    {    
+        if (!Q_stricmp(s, "Blaster"))    {
+            it = FindItem ("Lightsaber");
+       } 
+    }
+
+        //end 
 	it->use (ent, it);
 }
 
@@ -966,8 +994,8 @@ void ClientCommand (edict_t *ent)
 		Cmd_PutAway_f (ent);
 	else if (Q_stricmp (cmd, "wave") == 0)
 		Cmd_Wave_f (ent);
-	else if (Q_stricmp(cmd, "playerlist") == 0)
-		Cmd_PlayerList_f(ent);
+	else if (Q_stricmp(cmd, "fire_ForcePush") == 0)//modded
+		fire_ForcePush(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }
