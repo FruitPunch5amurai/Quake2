@@ -204,6 +204,8 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 			if (tr.ent->takedamage)
 			{
 				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+				tr.ent->stun+=100;
+				
 			}
 			else
 			{
@@ -272,7 +274,6 @@ Shoots shotgun pellets.  Used by shotgun and super shotgun.
 void fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int mod)
 {
 	int		i;
-
 	for (i = 0; i < count; i++)
 		fire_lead (self, start, aimdir, damage, kick, TE_SHOTGUN, hspread, vspread, mod);
 }
@@ -594,6 +595,9 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 	}
 
 	T_RadiusDamage(ent, ent->owner, ent->radius_dmg, other, ent->dmg_radius, MOD_R_SPLASH);
+	//jam92->modded for posion bowcaster
+	Poison_Cloud(ent,ent->owner,ent->enemy,ent->dmg_radius);
+
 
 	gi.WriteByte (svc_temp_entity);
 	if (ent->waterlevel)
@@ -625,6 +629,7 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 
 void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
 {
+
 	edict_t	*rocket;
 
 	rocket = G_Spawn();
@@ -957,7 +962,7 @@ void fire_lightsaber ( edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 			{
 				
 				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, 0,0);
-				gi.sound (self, CHAN_AUTO, gi.soundindex("hover/") , 1, ATTN_NORM, 0);
+				gi.sound (self, CHAN_AUTO, gi.soundindex("hover/HOVATCK1.WAV") , 1, ATTN_NORM, 0);
                                                                    
 			}
 			else
@@ -1033,8 +1038,8 @@ void force_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *sur
 		}
 	}
 
-	Force_RadiusDamage(ent, ent->owner, ent->radius_dmg, other, ent->dmg_radius, MOD_R_SPLASH);
-
+	Force_RadiusDamage(ent, ent->owner, ent->dmg, other, ent->dmg_radius, MOD_R_SPLASH);
+		
 
 	gi.WriteByte (svc_temp_entity);
 	if (ent->waterlevel)
@@ -1059,7 +1064,7 @@ static void Force_explode (edict_t *ent)
 		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
 
 	//FIXME: if we are onground then raise our Z just a bit since we are a point?
-	/*if (ent->enemy)
+	if (ent->enemy)
 	{
 		float	points;
 		vec3_t	v;
@@ -1070,17 +1075,13 @@ static void Force_explode (edict_t *ent)
 		VectorSubtract (ent->s.origin, v, v);
 		points = ent->dmg - 0.5 * VectorLength (v);
 		VectorSubtract (ent->enemy->s.origin, ent->s.origin, dir);
-		//modded
-		dir2[0] = dir[0];
-		dir2[1] = dir[1];
-		dir2[2] = dir[2];
 
 		if (ent->spawnflags & 1)
 			mod = MOD_HANDGRENADE;
 		else
-			mod = MOD_GRENADE;
-	//	T_Damage (ent->enemy, ent, ent->owner, dir, ent->s.origin, vec3_origin, 1,100, DAMAGE_RADIUS, mod);
-	}*/
+			mod = MOD_GRENADE;	
+		T_Damage (ent->enemy, ent, ent->owner, dir, ent->s.origin, vec3_origin, ent->dmg,100, DAMAGE_RADIUS, mod);
+	}
 
 	if (ent->spawnflags & 2)
 		mod = MOD_HELD_GRENADE;
@@ -1088,10 +1089,11 @@ static void Force_explode (edict_t *ent)
 		mod = MOD_HG_SPLASH;
 	else
 		mod = MOD_G_SPLASH;
-	Force_RadiusDamage(ent, ent->owner, 2, ent->enemy, ent->dmg_radius, mod);
+	//Uses a different than T_Damage go to g_combat.c
+	Force_RadiusDamage(ent, ent->owner, ent->radius_dmg, ent->enemy, ent->dmg_radius, mod);
+	
+	//Poison_Cloud(ent,ent->owner,ent->enemy,ent->dmg_radius);
 
-	
-	
 	VectorMA (ent->s.origin, -0.02, ent->velocity, origin);
 	gi.WriteByte (svc_temp_entity);
 
@@ -1105,13 +1107,13 @@ static void Force_explode (edict_t *ent)
 
 	G_FreeEdict (ent);  //doesnt delete grenades if commited out, makes landmines!
 }
-void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed, float damage_radius, int radius_damage)
+void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed,int damage, float damage_radius, int radius_damage)
 {
 	edict_t	*field;
 	vec3_t   end,kvel,dir2;
 	int   i;
 	float mass ;
-
+	if(self->energy >= 50){
 	field = G_Spawn();
 	VectorCopy (start, field->s.origin);
 	VectorCopy (dir, field->movedir);
@@ -1129,6 +1131,8 @@ void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed, float da
 	field->nextthink = level.time + 5;
 	field->think = Force_explode;
 	field->dmg_radius = damage_radius;
+	field->radius_dmg = radius_damage;
+	field->dmg = damage;
 	field->s.sound = gi.soundindex ("weapons/rockfly.wav");
 	field->classname = "rocket";
 		//modded->Push back player a little
@@ -1156,6 +1160,7 @@ void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed, float da
 		check_dodge (self, field->s.origin, dir, speed);
 
 	gi.linkentity (field);
+	}
 }
 static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int mod)
 {
@@ -1173,7 +1178,7 @@ static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 		vectoangles (aimdir, dir);
 		AngleVectors (dir, forward, right, up);
 
-		VectorMA (start,300, forward, end);
+		VectorMA (start,400, forward, end);
 		VectorMA (end, 1, right, end);
 		VectorMA (end, 1, up, end);
 
@@ -1185,7 +1190,24 @@ static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 		{
 			if (tr.ent->takedamage)
 			{
-				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+			//T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+			
+			if (tr.ent->mass < 50)
+				mass = 50;
+			else
+				mass = tr.ent->mass;
+
+			if (tr.ent->client)
+				VectorScale (aimdir, 1600.0 * 100/ mass, kvel);	
+			else
+				VectorScale (aimdir, 500.0 * 100/ mass, kvel);
+
+			//VectorSubtract (self->velocity, kvel, rocket->owner->velocity);
+
+			tr.ent->velocity[0] = -kvel[0];
+			tr.ent->velocity[1] = -kvel[1];
+			tr.ent->velocity[2] = -kvel[2];
+
 			}
 			else
 			{
@@ -1203,6 +1225,7 @@ static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 			}
 		}
 	}
+}
 
 	//Force pull if player is not grounded
 	/*
@@ -1222,18 +1245,18 @@ static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 			self->velocity[1] = kvel[1];
 			self->velocity[2] = kvel[2];
 	*/
-}
 
 
 static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
 {
 	trace_t		tr;
-	vec3_t		dir , dir2 , kvel;
+	vec3_t		dir , dir2, dir3 , kvel;
 	vec3_t		forward, right, up;
 	vec3_t		end;
 	float		r;
 	float		u;
 	float		mass;
+	int i ;
 
 	int			content_mask = MASK_SHOT;
 
@@ -1250,7 +1273,15 @@ static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 		VectorMA (end, r, right, end);
 		VectorMA (end, u, up, end);
 
-		tr = gi.trace (start, NULL, NULL, end, self, content_mask);
+		//dir2[0] = start[0]-.5;
+		dir2[1] = start[1]-.5;
+		dir2[2] = start[2]-.5;
+
+		//dir3[0] = start[0]+.5;
+		dir3[1] = start[1]+.5;
+		dir3[2] = start[2]+.5;
+
+		tr = gi.trace (start, dir2, dir3, end, self, content_mask);
 	}
 	
 	if (!((tr.surface) && (tr.surface->flags & SURF_SKY)))
@@ -1259,60 +1290,118 @@ static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 		{
 			if (tr.ent->takedamage)
 			{
-				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+				if(tr.fraction > .5)
+					T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+				else
+					T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage/2, kick, DAMAGE_BULLET, mod);
 			}
 			else
 			{
 				if (strncmp (tr.surface->name, "sky", 3) != 0)
 				{
 					gi.WriteByte (svc_temp_entity);
-					gi.WriteByte (te_impact);
+					gi.WriteByte (TE_SPARKS);
 					gi.WritePosition (tr.endpos);
 					gi.WriteDir (tr.plane.normal);
 					gi.multicast (tr.endpos, MULTICAST_PVS);
 
 					if (self->client)
 						PlayerNoise(self, tr.endpos, PNOISE_IMPACT);
+						gi.sound (self, CHAN_AUTO, gi.soundindex("items/l_health.wav") , .03, ATTN_NORM, 0);
+	
 				}
 			}
 		}
 	}
 
+			
+			
 	//Force push if player is not grounded
-	//if(!self->groundentity){
+	if(!self->groundentity){
 		if (self->mass < 50)
 				mass = 50;
 			else
 				mass = self->mass;
 
 			if (self->client)
-				VectorScale (aimdir, 1600.0 * 50/ mass, kvel);	
+				VectorScale (aimdir, 1600.0 * 100/ mass, kvel);	
 			else
-				VectorScale (aimdir, 500.0 * 50/ mass, kvel);
+				VectorScale (aimdir, 500.0 * 100/ mass, kvel);
 
 			//VectorSubtract (self->velocity, kvel, rocket->owner->velocity);
 
+			
 			self->velocity[0] = -kvel[0];
 			self->velocity[1] = -kvel[1];
 			self->velocity[2] = -kvel[2];
 			
-	//}else{
-	//dir2[0] = -aimdir[0];
-//	dir2[1] = -aimdir[1];
-	//T_Damage (self, self, self, dir2, tr.endpos, tr.plane.normal, 0, 10, DAMAGE_BULLET, mod);
-	//}
+			if(tr.ent->takedamage){
+			tr.ent->velocity[0] = kvel[0];
+			tr.ent->velocity[1] = kvel[1];
+			tr.ent->velocity[2] = kvel[2];
+						}
+			if(!tr.ent)
+				gi.dprintf("hit wall");
 
+	}
 }
 
 void fire_force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread,int count, int mod)
 {
 	int		i;
-	for (i = 0; i < count; i++)
+	if(self->energy >= 30){
 		force_push (self, start, aimdir, damage, kick,TE_BLASTER, hspread, vspread, mod);
-}
+
+	}
+	}
 
 void fire_force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int mod)
 {
+	if(self->energy >= 40)
 		force_pull (self, start, aimdir, damage, kick, TE_SHOTGUN, mod);
+}
+
+void fire_blasterStarWars(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int effect)
+{
+   edict_t    *bolt;
+   trace_t     tr;
+
+
+	VectorNormalize (dir);
+	bolt = G_Spawn();
+	VectorCopy (start, bolt->s.origin);
+    vectoangles (dir, bolt->s.angles);
+	VectorScale (dir, speed, bolt->velocity);
+	VectorAdd (start, bolt->s.origin, bolt->s.old_origin);
+	bolt->clipmask = MASK_SHOT;
+	bolt->movetype = MOVETYPE_FLYMISSILE;
+	bolt->solid = SOLID_BBOX;
+	bolt->s.renderfx |= RF_BEAM;
+	bolt->s.modelindex = 1;       
+	bolt->owner = self;
+	bolt->s.frame = 3;
+	bolt->s.skinnum =  0xf2f2f0f0;;
+	VectorSet (bolt->mins, -8, -8, -8);
+	VectorSet (bolt->maxs, 8, 8, 8);
+	bolt->touch = blaster_touch;
+	bolt->nextthink = level.time + 4;
+	bolt->think = G_FreeEdict;
+	bolt->dmg = damage;
+    bolt->s.sound = gi.soundindex ("weapons/laser2.wav");  
+
+	gi.linkentity (bolt);
+	
+	
+	if (self->client)
+		check_dodge (self, bolt->s.origin, dir, speed);
+
+	tr = gi.trace (self->s.origin, NULL, NULL, bolt->s.origin, bolt, MASK_SHOT);
+	 if (tr.fraction < 1.0)
+	{
+		VectorMA (bolt->s.origin, -10, dir, bolt->s.origin);
+		 bolt->touch (bolt, tr.ent, NULL, NULL);
+	}
+
+	 return;
 }
 

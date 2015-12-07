@@ -48,6 +48,7 @@ void MoveClientToIntermission (edict_t *ent)
 		DeathmatchScoreboardMessage (ent, NULL);
 		gi.unicast (ent, true);
 	}
+	ent->energy = 100;
 
 }
 
@@ -453,6 +454,7 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_TIMER] = 0;
 	}
 
+
 	//
 	// selected item
 	//
@@ -501,6 +503,11 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_HELPICON] = 0;
 
 	ent->client->ps.stats[STAT_SPECTATOR] = 0;
+
+	//jam92 ->modded energy count
+	ent->client->ps.stats[STAT_TIMER2_ICON] = level.pic_health;
+	ent->client->ps.stats[STAT_TIMER2] = ent->energy;
+	///
 }
 
 /*

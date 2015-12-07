@@ -694,7 +694,7 @@ char *dm_statusbar =
 "pic 0 "
 
 // ammo
-"if 2 "
+"if 18 "
 "	xv	100 "
 "	anum "
 "	xv	150 "
@@ -761,6 +761,15 @@ char *dm_statusbar =
   "xv 64 "
   "stat_string 16 "
 "endif "
+
+//Energy
+"if 18 "			// New. If STAT_TIMER2_ICON is not zero, then do
+"	yb	-72 "		// New
+"	xr	-80 "		// New
+"	num	3	19 "	// New. Display 2-digits with value from stat-array at index 19
+"	xr	-29 "		// New
+"	pic	18 "		// New. Display icon
+"endif "			// New
 ;
 
 

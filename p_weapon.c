@@ -745,12 +745,10 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 	float	damage_radius;
 	int		radius_damage;
 
-	//damage = 100 + (int)(random() * 20.0);
-	damage = 1;
-	//radius_damage = 120;
-	//damage_radius = 120;
-	radius_damage = 1;
-	damage_radius = 100;
+	damage = 100 + (int)(random() * 20.0);
+	radius_damage = 120;
+	damage_radius = 120;
+
 	
 	if (is_quad)
 	{
@@ -765,9 +763,8 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 
 	VectorSet(offset, 8, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_pushfield(ent, start, forward,10, damage_radius, radius_damage);
+	fire_rocket(ent, start, forward,damage,600,damage_radius, radius_damage);
 
-	
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -815,8 +812,8 @@ void Blaster_Fire (edict_t *ent, vec3_t g_offset, int damage, qboolean hyper, in
 
 	VectorScale (forward, -2, ent->client->kick_origin);
 	ent->client->kick_angles[0] = -1;
-
-	fire_blaster (ent, start, forward, damage, 1000, effect, hyper);
+	//jam92 -> Modded
+	fire_blaster(ent, start, forward, damage, 1000,effect, hyper);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -979,10 +976,10 @@ void Machinegun_Fire (edict_t *ent)
 
 	for (i=1 ; i<3 ; i++)
 	{
-		ent->client->kick_origin[i] = crandom() * 0.35;
-		ent->client->kick_angles[i] = crandom() * 0.7;
+		ent->client->kick_origin[i] = 1 * 0.35;
+		ent->client->kick_angles[i] = 1 * 0.7;
 	}
-	ent->client->kick_origin[0] = crandom() * 0.35;
+	ent->client->kick_origin[0] = 1 * 0.35;
 	ent->client->kick_angles[0] = ent->client->machinegun_shots * -1.5;
 
 	// raise the gun as it is firing
@@ -998,7 +995,10 @@ void Machinegun_Fire (edict_t *ent)
 	AngleVectors (angles, forward, right, NULL);
 	VectorSet(offset, 0, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_bullet (ent, start, forward, damage, kick, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_MACHINEGUN);
+	fire_blasterStarWars (ent, start, forward, damage, 2500, 1);
+	gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/laser2.wav"), 1, ATTN_NORM, 0);
+	
+	
 
 	gi.WriteByte (svc_muzzleflash);
 	gi.WriteShort (ent-g_edicts);
@@ -1026,9 +1026,9 @@ void Machinegun_Fire (edict_t *ent)
 void Weapon_Machinegun (edict_t *ent)
 {
 	static int	pause_frames[]	= {23, 45, 0};
-	static int	fire_frames[]	= {4, 5, 0};
+	static int	fire_frames[]	= {4, 8, 0};
 
-	Weapon_Generic (ent, 3, 5, 45, 49, pause_frames, fire_frames, Machinegun_Fire);
+	Weapon_Generic (ent, 3, 8, 45, 49, pause_frames, fire_frames, Machinegun_Fire);
 }
 
 void Chaingun_Fire (edict_t *ent)
@@ -1173,7 +1173,7 @@ void weapon_shotgun_fire (edict_t *ent)
 	vec3_t		start;
 	vec3_t		forward, right;
 	vec3_t		offset;
-	int			damage = 10;
+	int			damage = 1;
 	int			kick = 8;
 
 	if (ent->client->ps.gunframe == 9)
@@ -1195,7 +1195,11 @@ void weapon_shotgun_fire (edict_t *ent)
 		damage *= 4;
 		kick *= 4;
 	}
-		fire_force_pull (ent, start, forward, damage, kick, MOD_SHOTGUN);
+
+	if (deathmatch->value)
+		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
+	else
+		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_SHOTGUN_COUNT, MOD_SHOTGUN);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -1217,7 +1221,6 @@ void Weapon_Shotgun (edict_t *ent)
 
 	Weapon_Generic (ent, 7, 18, 36, 39, pause_frames, fire_frames, weapon_shotgun_fire);
 }
-
 
 void weapon_supershotgun_fire (edict_t *ent)
 {
@@ -1430,6 +1433,8 @@ void lightsaber_attack (edict_t *ent, vec3_t g_offset, int damage)
 	ent->client->kick_angles[0] = -1;
 
 	fire_lightsaber (ent, start, forward, damage, LIGHTSABER_KICK );
+		if(ent->energy >= 5)
+			ent->energy -=5;
 }
 
 void Weapon_Lightsaber_Fire (edict_t *ent)
@@ -1467,8 +1472,52 @@ void fire_ForcePush(edict_t *ent){
 	VectorSet(offset, 0, 8,  ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
 	
-	fire_force_push (ent, start, forward, damage, kick, 50, 50, 50, MOD_SHOTGUN);
 	
+	fire_force_push (ent, start, forward, damage, kick, 1, 1, 60, MOD_SHOTGUN);
+	//Subtract from energy
+	if(ent->energy >= 30)
+		ent->energy -=30;
+
+}
+void fire_ForcePull(edict_t *ent){
+		vec3_t		start;
+	vec3_t		forward, right;
+	vec3_t		offset;
+	int			damage = 10;
+	int			kick = 8;
+
+	AngleVectors (ent->client->v_angle, forward, right, NULL);
+
+	VectorScale (forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -2;
+
+	VectorSet(offset, 0, 8,  ent->viewheight-8);
+	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
+	
+	fire_force_pull (ent, start, forward, damage, kick, MOD_SHOTGUN);
+		if(ent->energy >= 40)
+		ent->energy -=40;
+}
+void fire_PushField(edict_t *ent){
+		vec3_t		start;
+	vec3_t		forward, right;
+	vec3_t		offset;
+	int			damage = 30;
+	int			speed = 600;
+
+	AngleVectors (ent->client->v_angle, forward, right, NULL);
+
+	VectorScale (forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -2;
+
+	VectorSet(offset, 0, 8,  ent->viewheight-8);
+	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
+	
+	
+	fire_pushfield (ent, start, forward, speed, damage, 300, 20);
+	//Subtract from energy
+	if(ent->energy >= 50)
+		ent->energy -=50;
 
 }
 

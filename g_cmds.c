@@ -990,12 +990,12 @@ void ClientCommand (edict_t *ent)
 		Cmd_WeapLast_f (ent);
 	else if (Q_stricmp (cmd, "kill") == 0)
 		Cmd_Kill_f (ent);
-	else if (Q_stricmp (cmd, "putaway") == 0)
-		Cmd_PutAway_f (ent);
-	else if (Q_stricmp (cmd, "wave") == 0)
-		Cmd_Wave_f (ent);
-	else if (Q_stricmp(cmd, "fire_ForcePush") == 0)//modded
-		fire_ForcePush(ent);
+	else if (Q_stricmp (cmd, "fire_PushField") == 0)
+		fire_PushField(ent);
+	else if (Q_stricmp (cmd, "fire_ForcePull") == 0)
+		fire_ForcePull(ent);
+	else if (Q_stricmp(cmd, "fire_ForcePush") == 0 )//modded
+				fire_ForcePush(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }

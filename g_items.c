@@ -1477,10 +1477,10 @@ always owned, never in the world
 /* precache */ "weapons/hyprbu1a.wav weapons/hyprbl1a.wav weapons/hyprbf1a.wav weapons/hyprbd1a.wav misc/lasfly.wav"
 	},
 
-	//Jam92 -> modded
-	/*Lightsabers,always owned never in world*/
+			//Jam92 -> modded
+	/*lightsaber,always owned never in world*/
 		{
-			"weapon_lightsaber",
+			"weapon_Lisghtsaber",
 				NULL,
 				Use_Weapon,
 				NULL,
@@ -1492,7 +1492,7 @@ always owned, never in the world
 				"w_blaster",
 				"Lightsaber",
 				0,
-				1,
+				0,
 				NULL,
 				IT_WEAPON,
 				WEAP_LIGHTSABER,
@@ -1568,7 +1568,7 @@ always owned, never in the world
 /* width */		3,
 		10,
 		NULL,
-		IT_AMMO,
+		NULL,
 		0,
 		NULL,
 		AMMO_SHELLS,

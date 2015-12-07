@@ -212,6 +212,7 @@ typedef struct
 #define WEAP_RAILGUN			10
 #define WEAP_BFG				11
 #define WEAP_LIGHTSABER			12 //modded
+#define WEAP_LASERGUN			13 
 
 typedef struct gitem_s
 {
@@ -945,6 +946,8 @@ struct gclient_s
 
 	edict_t		*chase_target;		// player we are chasing
 	qboolean	update_chase;		// need to update chase info?
+
+	
 };
 
 
@@ -1095,23 +1098,28 @@ struct edict_s
 	// common data blocks
 	moveinfo_t		moveinfo;
 	monsterinfo_t	monsterinfo;
-
-	int original;
-
+	//jam92->modded
+	int poison;
+	float energy;
+	int stun;
 };
 
 
 //Jam92 -> modded stuff goes below here
 void droptofloor (edict_t *ent);
 void RocketScrewUp();
-#define LIGHTSABER_DEATHMATCH_DAMAGE 150
-#define LIGHTSABER_NORMAL_DAMAGE 100
+#define LIGHTSABER_DEATHMATCH_DAMAGE 30
+#define LIGHTSABER_NORMAL_DAMAGE 20
+#define POISON_DAMAGE 1
 #define LIGHTSABER_KICK 500
 #define LIGHTSABER_RANGE 60
 
+void Poison_Cloud(edict_t *inflictor, edict_t *attacker, edict_t *ignore,float radius);
+
+void fire_blasterStarWars (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int effect);
 void fire_lightsaber ( edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick);
 void Force_RadiusDamage (edict_t *inflictor, edict_t *attacker, float damage, edict_t *ignore, float radius, int mod);
 void Force_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir, vec3_t point, vec3_t normal, int damage, int knockback, int dflags, int mod);
-void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed, float damage_radius, int radius_damage);
+void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed,int damage, float damage_radius, int radius_damage);
 void fire_force_push(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int mod);
 void fire_force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick,int mod);

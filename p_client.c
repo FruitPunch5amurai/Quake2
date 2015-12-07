@@ -591,7 +591,7 @@ void InitClientPersistant (gclient_t *client)
 
 	memset (&client->pers, 0, sizeof(client->pers));
 
-	//Jam92
+	//Jam92-> modded
 	item = FindItem("Lightsaber");
 	client->pers.inventory[ITEM_INDEX(item)] = 1;
 
@@ -1736,8 +1736,35 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		if (other->inuse && other->client->chase_target == ent)
 			UpdateChaseCam(other);
 	}
+
+	//jam92 -> modded 
+	if(ent->energy < 100)
+		ent->energy +=.2;
+	//Poison damage
+	if(ent ->poison  > 0 ){
+		ent->poison -= 1;
+		gi.dprintf("%f poison",ent->poison);
+	}
+	if(ent->poison % 30 == 0 && ent->poison != 0)
+		ent->health -= (POISON_DAMAGE);
+	if(ent->health <= 0){
+		//ent->deadflag = 1;
+		ent->die(ent,ent,ent->enemy,0,ent->pos1);
+		ent->poison = 0;	
+	}
+	if(ent->stun != 0){
+		if(ent->stun % 10 == 0 && ent->stun != 0){
+			ent->health -=POISON_DAMAGE;
+		}
+			ent->stun -=.2;
+			ent->velocity[0] = 0;
+			ent->velocity[1] = 0;
+			ent->velocity[2] = 0;
+	}
 }
 
+	
+	//gi.dprintf("%f energy",ent->client->energy);
 
 /*
 ==============
