@@ -1102,6 +1102,7 @@ struct edict_s
 	int poison;
 	float energy;
 	int stun;
+	float offset;
 };
 
 

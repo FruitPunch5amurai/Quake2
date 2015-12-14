@@ -204,6 +204,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 			if (tr.ent->takedamage)
 			{
 				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+				//stungun
 				tr.ent->stun+=100;
 				
 			}
@@ -950,10 +951,19 @@ void fire_lightsaber ( edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 
 	vec3_t          dir;            
 	vec3_t          end;
-
+	
 	VectorMA (start, LIGHTSABER_RANGE, aimdir, end);
 	tr = gi.trace (self->s.origin, NULL, NULL, end, self, MASK_SHOT);
-
+	if(random() <=.2)
+		//lightsabersounds
+		gi.sound (self, CHAN_AUTO, gi.soundindex("weapons/SlowSabr.wav") , 1, ATTN_NORM, 0);
+	else if(random() <=.4)
+		gi.sound (self, CHAN_AUTO, gi.soundindex("weapons/sthswng1.WAV") , 1, ATTN_NORM, 0);
+	else if(random() <=.6)
+		gi.sound (self, CHAN_AUTO, gi.soundindex("weapons/sthswng2.WAV") , 1, ATTN_NORM, 0);
+	else if(random() <=.8)
+		gi.sound (self, CHAN_AUTO, gi.soundindex("weapons/sthswng3.WAV") , 1, ATTN_NORM, 0);
+	
 	if (!((tr.surface) && (tr.surface->flags & SURF_SKY)))
 	{
 		if (tr.fraction < 1.0)
@@ -1133,7 +1143,7 @@ void fire_pushfield (edict_t *self, vec3_t start, vec3_t dir,int speed,int damag
 	field->dmg_radius = damage_radius;
 	field->radius_dmg = radius_damage;
 	field->dmg = damage;
-	field->s.sound = gi.soundindex ("weapons/rockfly.wav");
+	field->s.sound = gi.soundindex ("weapons/fjump.wav");
 	field->classname = "rocket";
 		//modded->Push back player a little
 		dir2[0] = dir[0];
@@ -1171,7 +1181,9 @@ static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 	float		mass;
 	
 	int			content_mask = MASK_SHOT;
-
+	//soundeffects
+	gi.sound (self, CHAN_AUTO, gi.soundindex("weapons/fhealing.wav") , 1, ATTN_NORM, 0);
+	
 	tr = gi.trace (self->s.origin, NULL, NULL, start, self, MASK_SHOT);
 		if (!(tr.fraction < 1.0))
 	{
@@ -1247,6 +1259,8 @@ static void force_pull (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 	*/
 
 
+
+
 static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
 {
 	trace_t		tr;
@@ -1259,6 +1273,9 @@ static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 	int i ;
 
 	int			content_mask = MASK_SHOT;
+
+	//soundeffects
+	gi.sound (self, CHAN_AUTO, gi.soundindex("weapons/fspeed.wav") , 1, ATTN_NORM, 0);
 
 	tr = gi.trace (self->s.origin, NULL, NULL, start, self, MASK_SHOT);
 	if (!(tr.fraction < 1.0))

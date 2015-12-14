@@ -594,6 +594,7 @@ void InitClientPersistant (gclient_t *client)
 	//Jam92-> modded
 	item = FindItem("Lightsaber");
 	client->pers.inventory[ITEM_INDEX(item)] = 1;
+	
 
 	item = FindItem("Blaster");
 	client->pers.selected_item = ITEM_INDEX(item);
