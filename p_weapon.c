@@ -262,6 +262,7 @@ Called by ClientBeginServerFrame and ClientThink
 */
 void Think_Weapon (edict_t *ent)
 {
+
 	// if just died, put the weapon away
 	if (ent->health < 1)
 	{
@@ -764,7 +765,8 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 	VectorSet(offset, 8, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
 	fire_rocket(ent, start, forward,damage,600,damage_radius, radius_damage);
-
+	//sound effects
+	gi.sound (ent, CHAN_AUTO, gi.soundindex("weapons/chewb.wav") , 1, ATTN_NORM, 0);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -1439,6 +1441,7 @@ void lightsaber_attack (edict_t *ent, vec3_t g_offset, int damage)
 
 void Weapon_Lightsaber_Fire (edict_t *ent)
 {
+
 	int damage;
 	if (deathmatch->value)
 		damage =  LIGHTSABER_DEATHMATCH_DAMAGE;
@@ -1446,6 +1449,7 @@ void Weapon_Lightsaber_Fire (edict_t *ent)
 		damage = LIGHTSABER_NORMAL_DAMAGE;
 	lightsaber_attack (ent, vec3_origin, damage);
 	ent->client->ps.gunframe++;
+
 }
 void Weapon_Lightsaber (edict_t *ent)
 {
@@ -1498,6 +1502,7 @@ void fire_ForcePull(edict_t *ent){
 		if(ent->energy >= 40)
 		ent->energy -=40;
 }
+
 void fire_PushField(edict_t *ent){
 		vec3_t		start;
 	vec3_t		forward, right;

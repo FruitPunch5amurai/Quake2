@@ -423,6 +423,9 @@ void Cmd_Use_f (edict_t *ent)
     {    
         if (!Q_stricmp(s, "Blaster"))    {
             it = FindItem ("Lightsaber");
+			//Lightsaber sound
+			gi.sound (ent, CHAN_VOICE, gi.soundindex ("weapons/lsaber.wav"), 1, ATTN_NORM, 0);
+			gi.sound (ent, CHAN_AUTO, gi.soundindex("weapons/imperial.wav") , 1, ATTN_NORM, 0);
        } 
     }
 
