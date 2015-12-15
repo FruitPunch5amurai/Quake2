@@ -1465,7 +1465,7 @@ void fire_ForcePush(edict_t *ent){
 		vec3_t		start;
 	vec3_t		forward, right;
 	vec3_t		offset;
-	int			damage = 10;
+	int			damage = 15;
 	int			kick = 8;
 
 	AngleVectors (ent->client->v_angle, forward, right, NULL);
@@ -1477,7 +1477,7 @@ void fire_ForcePush(edict_t *ent){
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
 	
 	
-	fire_force_push (ent, start, forward, damage, kick, 1, 1, 60, MOD_SHOTGUN);
+	fire_force_push (ent, start, forward, damage, kick, 10, 10, 60, MOD_SHOTGUN);
 	//Subtract from energy
 	if(ent->energy >= 30)
 		ent->energy -=30;

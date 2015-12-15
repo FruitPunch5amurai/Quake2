@@ -205,7 +205,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 			{
 				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
 				//stungun
-				tr.ent->stun+=100;
+				tr.ent->stun+=10;
 				
 			}
 			else
@@ -1298,7 +1298,7 @@ static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 		dir3[1] = start[1]+.5;
 		dir3[2] = start[2]+.5;
 
-		tr = gi.trace (start, dir2, dir3, end, self, content_mask);
+		tr = gi.trace (start, NULL, NULL, end, self, content_mask);
 	}
 	
 	if (!((tr.surface) && (tr.surface->flags & SURF_SKY)))
@@ -1311,6 +1311,20 @@ static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 					T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
 				else
 					T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage/2, kick, DAMAGE_BULLET, mod);
+					if (self->mass < 50)
+				mass = 50;
+			else
+				mass = self->mass;
+
+			if (self->client)
+				VectorScale (aimdir, 1600.0 * 200/ mass, kvel);	
+			else
+				VectorScale (aimdir, 500.0 * 200/ mass, kvel);
+
+			//VectorSubtract (self->velocity, kvel, rocket->owner->velocity);
+			tr.ent->velocity[0] = kvel[0];
+			tr.ent->velocity[1] = kvel[1];
+			tr.ent->velocity[2] = kvel[2];
 			}
 			else
 			{
@@ -1351,7 +1365,7 @@ static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 			self->velocity[0] = -kvel[0];
 			self->velocity[1] = -kvel[1];
 			self->velocity[2] = -kvel[2];
-			
+	}
 			if(tr.ent->takedamage){
 			tr.ent->velocity[0] = kvel[0];
 			tr.ent->velocity[1] = kvel[1];
@@ -1361,7 +1375,7 @@ static void force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 				gi.dprintf("hit wall");
 
 	}
-}
+
 
 void fire_force_push (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread,int count, int mod)
 {
