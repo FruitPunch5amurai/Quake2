@@ -205,7 +205,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 			{
 				T_Damage (tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
 				//stungun
-				tr.ent->stun+=10;
+				tr.ent->stun+=20;
 				
 			}
 			else
